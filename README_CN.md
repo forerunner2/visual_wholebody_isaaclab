@@ -163,18 +163,13 @@ Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0
 状态历史编码器和内部 DAgger 风格的历史编码更新流程。
 
 ```bash
-python scripts/rsl_rl/train_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/rsl_rl/train_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --num_envs 4096 --headless
 ```
 
 运行训练完成的策略：
 
 ```bash
-python scripts/rsl_rl/play_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --checkpoint /path/to/model.pt
+python scripts/rsl_rl/play_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --checkpoint /path/to/model.pt
 ```
 
 > `scripts/rsl_rl/train.py` 和标准 Isaac Lab RSL-RL 配置仅作为参考保留。
@@ -185,8 +180,7 @@ python scripts/rsl_rl/play_v1.py \
 训练高层教师策略前，需要在以下文件中设置 `low_policy_path`：
 
 ```text
-source/visual_wholebody_isaaclab/visual_wholebody_isaaclab/
-tasks/direct/pick_multi/pick_multi_env_cfg.py
+source/visual_wholebody_isaaclab/visual_wholebody_isaaclab/tasks/direct/pick_multi/pick_multi_env_cfg.py
 ```
 
 如果对应脚本支持，也可以通过命令行参数传入低层模型路径。
@@ -194,10 +188,7 @@ tasks/direct/pick_multi/pick_multi_env_cfg.py
 ### 3. 训练基于状态的高层教师策略
 
 ```bash
-python scripts/skrl/train.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/skrl/train.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 --num_envs 4096 --headless
 ```
 
 教师策略接收仿真中的特权状态信息，并输出 9 维高层动作，包括：
@@ -212,11 +203,7 @@ python scripts/skrl/train.py \
 获得低层策略和高层教师策略模型后，使用 DAgger 训练视觉学生策略：
 
 ```bash
-python scripts/dagger/train_student.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 \
-    --num_envs 64 \
-    --low_policy /path/to/low_level_model.pt \
-    --teacher_ckpt /path/to/teacher_checkpoint.pt
+python scripts/dagger/train_student.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 --num_envs 64 --low_policy /path/to/low_level_model.pt --teacher_ckpt /path/to/teacher_checkpoint.pt
 ```
 
 视觉学生策略使用前置相机和腕部相机提供的深度与语义信息，
@@ -228,7 +215,6 @@ python scripts/dagger/train_student.py \
 - 原始 Isaac Gym 项目训练的模型不一定能直接用于本 Isaac Lab 版本。
 - 模型是否兼容取决于训练脚本使用的观测结构和网络结构。
 - 本项目仍在开发中，暂不保证完全复现原论文中的训练性能。
-- 不建议将训练日志、模型检查点、缓存文件和实验输出提交到 Git 仓库。
 
 ## 原始项目与相关工作
 
@@ -284,6 +270,3 @@ https://github.com/forerunner2/visual_wholebody_isaaclab
 
 本仓库包含从上游项目适配的代码和资源。使用或重新发布代码、模型及资源前，
 请分别确认原始项目和各项第三方依赖的许可证要求。
-
-只有在确认所选许可证与全部上游代码及资源的授权条款兼容后，
-才建议为本仓库添加独立的许可证文件。

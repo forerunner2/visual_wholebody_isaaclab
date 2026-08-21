@@ -1,6 +1,6 @@
 # Visual Whole-Body Control for Loco-Manipulation — Isaac Lab Port
 
-[中文说明](README_zh-CN.md)
+[中文说明](README_CN.md)
 
 This repository is an **unofficial Isaac Lab port** of the original
 [Visual Whole-Body Control for Legged Loco-Manipulation](https://github.com/Ericonaldo/visual_whole_body)

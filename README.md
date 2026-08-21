@@ -106,3 +106,16 @@ task environments, training pipelines, and visual learning components.
 
 We thank the original authors for their valuable work and for making
 the project publicly available.
+
+## Citation
+
+If you find this project helpful in your research, please consider citing
+the original `visual_wholebody` work:
+
+```bibtex
+@article{liu2024visual,
+    title={Visual Whole-Body Control for Legged Loco-Manipulation},
+    author={Liu, Minghuan and Chen, Zixuan and Cheng, Xuxin and Ji, Yandong and Yang, Ruihan and Wang, Xiaolong},
+    journal={arXiv preprint arXiv:2403.16967},
+    year={2024}
+}

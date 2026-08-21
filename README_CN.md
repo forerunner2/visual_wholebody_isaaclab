@@ -37,3 +37,13 @@ Pick-Multi 视觉学生环境（Vision Student）
     输入：前置相机 + 腕部相机的深度图和语义分割图像
     输出：与教师策略相同的9维动作
     使用 DAgger + GRU 训练视觉学生策略
+
+---
+
+# 致谢
+
+本项目将该原来基于isaacgym的项目改为基于isaaclab的版本，原始项目：
+
+https://github.com/Ericonaldo/visual_wholebody
+
+感谢原作者 **Ericonaldo** 及相关贡献者开源 `visual_wholebody` 项目。

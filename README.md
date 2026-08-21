@@ -92,3 +92,17 @@ python scripts/skrl/train.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher
 ```bash
 python scripts/dagger/train_student.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 --num_envs 64 --low_policy <low-level>/model.pt --teacher_ckpt <teacher>.pt
 ```
+
+## Acknowledgements
+
+This project is based on and adapted from the original
+[visual_wholebody](https://github.com/Ericonaldo/visual_wholebody)
+project developed by [Ericonaldo](https://github.com/Ericonaldo).
+
+The original project provides the B1 quadruped + Z1 arm whole-body
+loco-manipulation framework. This repository ports and adapts the
+original implementation to Isaac Lab 2.3.2, including the corresponding
+task environments, training pipelines, and visual learning components.
+
+We thank the original authors for their valuable work and for making
+the project publicly available.

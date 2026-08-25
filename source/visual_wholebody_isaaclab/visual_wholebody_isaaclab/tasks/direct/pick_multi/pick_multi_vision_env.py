@@ -38,7 +38,17 @@ class VisualWholeBodyPickMultiVisionEnv(VisualWholeBodyPickMultiEnv):
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot_cfg)
         self.contact_sensor = ContactSensor(self.cfg.contact_sensor)
-        self.table = RigidObject(self.cfg.table_cfg)
+        # table: STATIC collider (mirror ground-plane pattern; RigidObject table doesn't collide)
+        self.cfg.table_cfg.spawn.func(
+            self.cfg.table_cfg.prim_path,
+            sim_utils.CuboidCfg(
+                size=(0.6, 1.0, 0.25),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+                collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+            ),
+            translation=self.cfg.table_cfg.init_state.pos,
+            orientation=self.cfg.table_cfg.init_state.rot,
+        )
         self.object = RigidObject(self.cfg.object_cfg)
         self.front_camera = TiledCamera(self.cfg.front_camera)
         self.wrist_camera = TiledCamera(self.cfg.wrist_camera)
@@ -49,8 +59,7 @@ class VisualWholeBodyPickMultiVisionEnv(VisualWholeBodyPickMultiEnv):
         self.scene.sensors["front_camera"] = self.front_camera
         self.scene.sensors["wrist_camera"] = self.wrist_camera
         self.scene.rigid_objects["object"] = self.object
-        self.scene.rigid_objects["table"] = self.table
-        light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
+        light_cfg = sim_utils.DomeLightCfg(intensity=800.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
 
         # assign a semantic label to the graspable object so the semantic camera

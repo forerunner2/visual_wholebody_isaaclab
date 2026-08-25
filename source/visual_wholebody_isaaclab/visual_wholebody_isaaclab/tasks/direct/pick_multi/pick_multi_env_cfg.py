@@ -46,17 +46,18 @@ class PickMultiRewardsCfg:
     base_height_target: float = 0.55
 
     approaching: float = 0.5
-    lifting: float = 1.0
-    pick_up: float = 3.5
+    lifting: float = 2.0
+    pick_up: float = 8.0
     acc_penalty: float = -0.001
     command_penalty: float = -1.0
-    command_reward: float = 0.25
-    standpick: float = 0.25
+    command_reward: float = 0.05
+    standpick: float = 0.05
     action_rate: float = -0.001
-    ee_orn: float = 0.01
+    ee_orn: float = 0.5
     base_dir: float = 0.25
     base_approaching: float = 0.01
-    grasp_base_height: float = 0.5
+    grasp_base_height: float = 1.0
+    grasp_shaping: float = 0.2
 
 
 @configclass
@@ -99,21 +100,23 @@ class VisualWholeBodyPickMultiEnvCfg(DirectRLEnvCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.6, 1.0, 0.25),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.125)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.255)),
     )
     # single-object first version; extend to a RigidObjectCollection for 3+ objects
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Object",
         spawn=sim_utils.UrdfFileCfg(asset_path=_obj_urdf("sugar_box"), fix_base=False, joint_drive=None),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.338)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.468)),
     )
 
     # environment settings
-    lifted_success_threshold: float = 0.35
+    lifted_success_threshold: float = 0.1
     lifted_init_threshold: float = 0.05
-    base_object_dist_threshold: float = 0.6
+    base_object_dist_threshold: float = 0.4
     hold_steps: int = 25
     last_commands: bool = False
     use_tanh: bool = False

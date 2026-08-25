@@ -133,6 +133,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
             "base_dir": self.cfg.rewards.base_dir,
             "base_approaching": self.cfg.rewards.base_approaching,
             "grasp_base_height": self.cfg.rewards.grasp_base_height,
+            "grasp_shaping": self.cfg.rewards.grasp_shaping,
         }
         self.reward_scales = {k: v for k, v in self.reward_scales.items() if v is not None and v != 0.0}
         self.reward_names = list(self.reward_scales.keys())
@@ -147,15 +148,26 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot_cfg)
         self.contact_sensor = ContactSensor(self.cfg.contact_sensor)
-        self.table = RigidObject(self.cfg.table_cfg)
+        # table: STATIC collider (CollisionAPI, no RigidBodyAPI), mirroring the ground-plane
+        # pattern. A kinematic/dynamic RigidObject table does not collide with the object in
+        # this setup (the object free-falls through it), so it cannot be a RigidObject.
+        self.cfg.table_cfg.spawn.func(
+            self.cfg.table_cfg.prim_path,
+            sim_utils.CuboidCfg(
+                size=(0.6, 1.0, 0.25),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.5, 0.5)),
+                collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+            ),
+            translation=self.cfg.table_cfg.init_state.pos,
+            orientation=self.cfg.table_cfg.init_state.rot,
+        )
         self.object = RigidObject(self.cfg.object_cfg)
         spawn_ground_plane(prim_path="/World/ground", cfg=GroundPlaneCfg())
         self.scene.clone_environments(copy_from_source=False)
         self.scene.articulations["robot"] = self.robot
         self.scene.sensors["contact_sensor"] = self.contact_sensor
         self.scene.rigid_objects["object"] = self.object
-        self.scene.rigid_objects["table"] = self.table
-        light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
+        light_cfg = sim_utils.DomeLightCfg(intensity=800.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
 
     # ------------------------------------------------------------------ steps
@@ -181,7 +193,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
         if self.cfg.near_goal_stop:
             base_obj_dis = torch.norm(self.object_state[:, :2] - self.arm_base[:, :2], dim=-1)
             replaced_action = self.actions.clone()
-            replaced_action[base_obj_dis < 0.6, 7:9] = 0.0
+            replaced_action[base_obj_dis < self.cfg.base_object_dist_threshold, 7:9] = 0.0
             self.extras["replaced_action"] = replaced_action
             self.actions[:] = replaced_action
 
@@ -425,7 +437,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
     def _reward_command_reward(self):
         base_obj_dis = self.base_obj_dis
         reward = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
-        reward[base_obj_dis < 0.6] = torch.exp(-torch.abs(self.commands[:, 0]))[base_obj_dis < 0.6]
+        reward[base_obj_dis < self.cfg.base_object_dist_threshold] = torch.exp(-torch.abs(self.commands[:, 0]))[base_obj_dis < self.cfg.base_object_dist_threshold]
         if self.common_step_counter < 30000:
             reward = 0.0
         return reward, reward
@@ -433,7 +445,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
     def _reward_command_penalty(self):
         base_obj_dis = self.base_obj_dis
         penalty = torch.where(
-            base_obj_dis < 0.6,
+            base_obj_dis < self.cfg.base_object_dist_threshold,
             torch.norm(self.commands[:, :1], dim=-1),
             torch.zeros_like(self.reset_terminated, device=self.device, dtype=torch.float),
         )
@@ -457,7 +469,20 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
         rew = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
         obj_dir_unit = obj_dir[far_obj] / obj_dist[far_obj].unsqueeze(-1)
         rew[far_obj] = torch.nn.functional.cosine_similarity(ee_x_dir_world[far_obj], obj_dir_unit)
+        # 末端已到物体处（距离<0.01m）→ 满分。否则奖励在接触瞬间归零，
+        # 策略会学到"碰一下就跑"以保住 ee_orn 奖励。
+        rew[~far_obj] = 1.0
         return rew, rew
+
+    def _reward_grasp_shaping(self):
+        # 桥接"末端到位"→"夹爪合拢"：末端距物体 < 0.15m 且夹爪目标处于闭合侧 → 给奖励。
+        # 注意夹爪语义（原版忠实移植）：动作<0 → 目标=上限(0.0)=闭合；动作>=0 → 目标=下限(-1.57)=张开。
+        d_ee_obj = torch.norm(self.ee_pos - self.object_state[:, :3], dim=-1)
+        gripper_closed = self.gripper_dof_pos[:, 0] > (
+            self.dof_limits_lower[-1] + self.dof_limits_upper[-1]
+        ) / 2.0
+        reward = ((d_ee_obj < 0.15) & gripper_closed).float()
+        return reward, reward
 
     def _reward_base_dir(self):
         base_x_dir = torch.tensor([1.0, 0.0, 0.0], device=self.device).repeat(self.num_envs, 1)
@@ -569,10 +594,10 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
         # table (static; only used to set the table-top height)
         self.table_height[env_ids] = self.table_z_center + self.table_half_height
 
-        # object
+        # object (必须加 env_origins，否则物体落在世界原点、离桌面 7.5m，cube_falls 每步触发)
         obj_state = torch.zeros(len(env_ids), 13, device=self.device)
-        obj_state[:, 0] = torch_rand_float(-0.15, 0.15, (len(env_ids), 1), self.device).squeeze(1)
-        obj_state[:, 1] = torch_rand_float(-0.1, 0.1, (len(env_ids), 1), self.device).squeeze(1)
+        obj_state[:, 0] = self.scene.env_origins[env_ids, 0] + torch_rand_float(-0.15, 0.15, (len(env_ids), 1), self.device).squeeze(1)
+        obj_state[:, 1] = self.scene.env_origins[env_ids, 1] + torch_rand_float(-0.1, 0.1, (len(env_ids), 1), self.device).squeeze(1)
         obj_state[:, 2] = self.table_height[env_ids] + self.obj_height[env_ids]
         rand_yaw_box = torch_rand_float(-3.15, 3.15, (len(env_ids), 1), self.device).squeeze(1)
         init_orn = self.obj_orn_tensor  # (4,) wxyz
@@ -628,7 +653,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
     def _init_buffers(self):
         self.arm_base_offset = torch.tensor([0.3, 0.0, 0.09], device=self.device).repeat(self.num_envs, 1)
         self.ee_goal_center_offset = torch.tensor([0.3, 0.0, 0.7], device=self.device).repeat(self.num_envs, 1)
-        self.table_z_center = 0.125
+        self.table_z_center = 0.255  # 桌面中心抬到 0.255 → 顶面 0.38，物体落入手臂可达范围（原 0.125 时够不到）
         # 原版 table_heights 语义 = 桌面顶面高度 = 中心 z + 半高 (0.125 + 0.125 = 0.25)
         self.table_half_height = self.cfg.table_cfg.spawn.size[2] / 2.0
         self.table_height = torch.full(
@@ -689,7 +714,7 @@ class VisualWholeBodyPickMultiEnv(DirectRLEnv):
 
         self.curr_ee_goal_cart = torch.zeros(self.num_envs, 3, device=self.device)
         self.curr_ee_goal_orn_rpy = torch.zeros(self.num_envs, 3, device=self.device)
-        self.init_ee_goal_cart = torch.tensor([0.46, 0.0, 0.55], device=self.device).repeat(self.num_envs, 1)
+        self.init_ee_goal_cart = torch.tensor([0.46, 0.0, 0.32], device=self.device).repeat(self.num_envs, 1)
         self.curr_ee_goal_cart[:] = self.init_ee_goal_cart[:]
         self.ee_goal_orn_quat = torch.zeros(self.num_envs, 4, device=self.device)
         self.ee_goal_cart_world = torch.zeros(self.num_envs, 3, device=self.device)

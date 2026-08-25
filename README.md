@@ -170,10 +170,7 @@ history inputs, the dual leg/arm control heads, the privileged encoder, the stat
 history encoder, and the internal DAgger-style history update.
 
 ```bash
-python scripts/rsl_rl/train_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/rsl_rl/train_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --num_envs 4096 --headless
 ```
 
 Run a trained policy:

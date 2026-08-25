@@ -176,9 +176,7 @@ python scripts/rsl_rl/train_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Dir
 Run a trained policy:
 
 ```bash
-python scripts/rsl_rl/play_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --checkpoint /path/to/model.pt
+python scripts/rsl_rl/play_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --checkpoint /path/to/model.pt
 ```
 
 > The scripts in `scripts/rsl_rl/train.py` and the standard Isaac Lab RSL-RL
@@ -200,10 +198,7 @@ corresponding script.
 ### 3. Train the State-Based High-Level Teacher
 
 ```bash
-python scripts/skrl/train.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/skrl/train.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 --num_envs 4096 --headless
 ```
 
 The teacher receives privileged simulation states and produces a
@@ -220,11 +215,7 @@ After obtaining both the low-level policy and high-level teacher checkpoints,
 train the visual student with DAgger:
 
 ```bash
-python scripts/dagger/train_student.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 \
-    --num_envs 64 \
-    --low_policy /path/to/low_level_model.pt \
-    --teacher_ckpt /path/to/teacher_checkpoint.pt
+python scripts/dagger/train_student.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 --num_envs 64 --low_policy /path/to/low_level_model.pt --teacher_ckpt /path/to/teacher_checkpoint.pt
 ```
 
 The student observes front-camera and wrist-camera depth/semantic information

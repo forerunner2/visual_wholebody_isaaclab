@@ -163,18 +163,13 @@ Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0
 状态历史编码器和内部 DAgger 风格的历史编码更新流程。
 
 ```bash
-python scripts/rsl_rl/train_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/rsl_rl/train_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --num_envs 4096 --headless
 ```
 
 运行训练完成的策略：
 
 ```bash
-python scripts/rsl_rl/play_v1.py \
-    --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 \
-    --checkpoint /path/to/model.pt
+python scripts/rsl_rl/play_v1.py --task Isaac-VisualWholeBody-B1Z1-LowLevel-Direct-v0 --checkpoint /path/to/model.pt
 ```
 
 > `scripts/rsl_rl/train.py` 和标准 Isaac Lab RSL-RL 配置仅作为参考保留。
@@ -194,10 +189,7 @@ tasks/direct/pick_multi/pick_multi_env_cfg.py
 ### 3. 训练基于状态的高层教师策略
 
 ```bash
-python scripts/skrl/train.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 \
-    --num_envs 4096 \
-    --headless
+python scripts/skrl/train.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Teacher-Direct-v0 --num_envs 4096 --headless
 ```
 
 教师策略接收仿真中的特权状态信息，并输出 9 维高层动作，包括：
@@ -212,11 +204,7 @@ python scripts/skrl/train.py \
 获得低层策略和高层教师策略模型后，使用 DAgger 训练视觉学生策略：
 
 ```bash
-python scripts/dagger/train_student.py \
-    --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 \
-    --num_envs 64 \
-    --low_policy /path/to/low_level_model.pt \
-    --teacher_ckpt /path/to/teacher_checkpoint.pt
+python scripts/dagger/train_student.py --task Isaac-VisualWholeBody-B1Z1-PickMulti-Vision-Direct-v0 --num_envs 64 --low_policy /path/to/low_level_model.pt --teacher_ckpt /path/to/teacher_checkpoint.pt
 ```
 
 视觉学生策略使用前置相机和腕部相机提供的深度与语义信息，
